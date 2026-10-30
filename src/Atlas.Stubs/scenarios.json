@@ -1,0 +1,68 @@
+{
+  // How the stand-ins behave. Edit this file while the stubs run; changes apply on the next call.
+  // Nothing in the Atlas services needs to change to try a different scenario.
+  //
+  // A rule is chosen when its "match" text appears (any case) in the request's trigger input:
+  //   - IdNow:      anywhere inside the decoded document or selfie image (put the text in the
+  //                 "image", e.g. base64 of "scenario:inconclusive"; real images never match)
+  //   - WorldCheck: the applicant's full name
+  //   - Accounts:   the applicant's full name
+  //   - Cards:      the applicant's full name
+  // Rule options: "delayMs" (slow provider), "failStatus" (HTTP error), "failFirst" (only the
+  // first N calls for the same request fail, then it succeeds), "response" (the answer).
+  // No rule matches: the "default" answer is given.
+
+  "idNow": {
+    "default": { "documentResult": "VALID", "faceMatch": true, "confidence": 0.97 },
+    "rules": [
+      { "match": "scenario:invalid-document",
+        "response": { "documentResult": "INVALID", "faceMatch": true, "confidence": 0.30 } },
+      { "match": "scenario:face-mismatch",
+        "response": { "documentResult": "VALID", "faceMatch": false, "confidence": 0.40 } },
+      { "match": "scenario:inconclusive",
+        "response": { "documentResult": "INCONCLUSIVE", "faceMatch": true, "confidence": 0.50 } },
+      { "match": "scenario:low-confidence",
+        "response": { "documentResult": "VALID", "faceMatch": true, "confidence": 0.60 } },
+      { "match": "scenario:slow", "delayMs": 8000 },
+      { "match": "scenario:very-slow", "delayMs": 90000 },
+      { "match": "scenario:down", "failStatus": 503 },
+      { "match": "scenario:flaky", "failStatus": 503, "failFirst": 2 }
+    ]
+  },
+
+  "worldCheck": {
+    "default": { "status": "CLEAR", "matches": [] },
+    "rules": [
+      { "match": "Possible-Match",
+        "response": { "status": "POSSIBLE_MATCH", "matches": [
+          { "listType": "SANCTIONS", "score": 0.82, "subject": "Possible-Match (test list entry)" }
+        ] } },
+      { "match": "Pep-Match",
+        "response": { "status": "POSSIBLE_MATCH", "matches": [
+          { "listType": "PEP", "score": 0.74, "subject": "Pep-Match (test list entry)" }
+        ] } },
+      { "match": "Wc-Slow", "delayMs": 8000 },
+      { "match": "Wc-Very-Slow", "delayMs": 90000 },
+      { "match": "Wc-Down", "failStatus": 503 },
+      { "match": "Wc-Flaky", "failStatus": 503, "failFirst": 2 }
+    ]
+  },
+
+  "accounts": {
+    "default": { "status": "OPEN" },
+    "rules": [
+      { "match": "Account-Slow", "delayMs": 8000 },
+      { "match": "Account-Down", "failStatus": 503 },
+      { "match": "Account-Flaky", "failStatus": 503, "failFirst": 2 }
+    ]
+  },
+
+  "cards": {
+    "default": { "status": "ORDERED" },
+    "rules": [
+      { "match": "Card-Slow", "delayMs": 8000 },
+      { "match": "Card-Down", "failStatus": 503 },
+      { "match": "Card-Flaky", "failStatus": 503, "failFirst": 2 }
+    ]
+  }
+}
