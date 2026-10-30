@@ -7,6 +7,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="..\..\..\config\markets.json" Link="markets.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Atlas.Onboarding.Domain\Atlas.Onboarding.Domain.csproj" />
     <ProjectReference Include="..\Atlas.Onboarding.Infrastructure\Atlas.Onboarding.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Atlas.Shared\Atlas.Shared.csproj" />

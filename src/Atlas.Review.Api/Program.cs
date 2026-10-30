@@ -1,3 +1,4 @@
+using Atlas.Shared.Markets;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
@@ -11,6 +12,9 @@ try
         .Enrich.WithProperty("Service", "atlas-review")
         .WriteTo.Console()
         .WriteTo.Seq(context.Configuration["Seq:Url"] ?? "http://localhost:5341"));
+
+    builder.Configuration.AddMarketsFile();
+    builder.Services.AddMarkets(builder.Configuration);
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();

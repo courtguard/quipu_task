@@ -18,6 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The real market configuration is tested, not a copy of it. -->
+    <Content Include="..\..\config\markets.json" Link="markets.json"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Onboarding\Atlas.Onboarding.Domain\Atlas.Onboarding.Domain.csproj" />
   </ItemGroup>
 
