@@ -1,0 +1,14 @@
+{
+  "firstName": "Ana",
+  "lastName": "Petrova",
+  "dateOfBirth": "1991-03-04",
+  "country": "MB",
+  "nationalId": "0403991450024",
+  "email": "ana@example.com",
+  "phone": "+10000000000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c2FtcGxlIHBhc3Nwb3J0IHBob3Rv" },
+    { "type": "SELFIE", "image": "c2FtcGxlIHNlbGZpZSBzY2VuYXJpbzppbmNvbmNsdXNpdmU=" }
+  ],
+  "termsAccepted": true
+}

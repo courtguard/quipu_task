@@ -1,0 +1,14 @@
+{
+  "firstName": "Ana",
+  "lastName": "Petrova",
+  "dateOfBirth": "1991-03-04",
+  "country": "MD",
+  "nationalId": "1234567890",
+  "email": "ana@example.com",
+  "phone": "+10000000000",
+  "documents": [
+    { "type": "ID_CARD", "image": "c2FtcGxlIHBhc3Nwb3J0IHBob3Rv" },
+    { "type": "SELFIE", "image": "c2FtcGxlIHNlbGZpZQ==" }
+  ],
+  "termsAccepted": true
+}

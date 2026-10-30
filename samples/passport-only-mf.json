@@ -1,0 +1,15 @@
+{
+  "firstName": "Ana",
+  "lastName": "Petrova",
+  "dateOfBirth": "1991-03-04",
+  "country": "MF",
+  "nationality": "UA",
+  "passportNumber": "P1234567",
+  "email": "ana@example.com",
+  "phone": "+10000000000",
+  "documents": [
+    { "type": "PASSPORT", "image": "c2FtcGxlIHBhc3Nwb3J0IHBob3Rv" },
+    { "type": "SELFIE", "image": "c2FtcGxlIHNlbGZpZQ==" }
+  ],
+  "termsAccepted": true
+}
