@@ -1,0 +1,105 @@
+{
+  // Single source of truth for market differences (Annex B to GC-2026-0814). Copied next to every
+  // service at build time. Market differences are configuration, not code.
+  //
+  // Assumptions not stated in the requirements are marked ASSUMPTION.
+  //  - IdNowMinConfidence: ASSUMPTION - no threshold is specified anywhere; 0.85 is a placeholder.
+  //  - Checksum: null everywhere - Annex B says the MA/MB and ME check-digit algorithms exist
+  //    (and differ) but does not define them. Listed as an open question.
+  //  - PassportPattern: ASSUMPTION - sanity bounds only, passport formats are not specified.
+  //  - Database / BlobContainer: one per market so that personal data stays in-country. Locally
+  //    they all live on one SQL Server / Azurite; production needs physical separation.
+  "Markets": {
+    "MA": {
+      "Enabled": true,
+      "ActivationMode": "Remote",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_MA",
+      "BlobContainer": "ma-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        "NationalIdPattern": "^[0-9]{13}$",
+        "Checksum": null
+      }
+    },
+    "MB": {
+      "Enabled": true,
+      "ActivationMode": "Remote",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_MB",
+      "BlobContainer": "mb-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        "NationalIdPattern": "^[0-9]{13}$",
+        "Checksum": null
+      }
+    },
+    "MC": {
+      "Enabled": true,
+      "ActivationMode": "Remote",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_MC",
+      "BlobContainer": "mc-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        // 9 alphanumeric characters, a letter in position 9.
+        "NationalIdPattern": "^[A-Z0-9]{8}[A-Z]$",
+        "Checksum": null
+      }
+    },
+    "MD": {
+      "Enabled": true,
+      // Remote identification is allowed for the application only. The applicant must attend a
+      // branch and sign before the account may be activated. No exemption may be assumed.
+      "ActivationMode": "InPerson",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_MD",
+      "BlobContainer": "md-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        "NationalIdPattern": "^[0-9]{10}$",
+        "Checksum": null
+      }
+    },
+    "ME": {
+      "Enabled": true,
+      "ActivationMode": "Remote",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_ME",
+      "BlobContainer": "me-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        "NationalIdPattern": "^[0-9]{10}$",
+        "Checksum": null
+      }
+    },
+    "MF": {
+      "Enabled": true,
+      "ActivationMode": "Remote",
+      "IdNowMinConfidence": 0.85,
+      "Database": "Atlas_MF",
+      "BlobContainer": "mf-documents",
+      "IdNowBaseUrl": "http://localhost:5300/idnow/",
+      "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "Identifier": {
+        "Required": true,
+        // No format is given for MF's personal number, so only a sanity limit is applied.
+        "NationalIdPattern": null,
+        "Checksum": null,
+        // Not issued to non-citizen residents: the passport number is accepted in lieu.
+        "PassportAcceptedInLieu": true,
+        "PassportPattern": "^[A-Z0-9]{5,20}$"
+      }
+    }
+  }
+}
