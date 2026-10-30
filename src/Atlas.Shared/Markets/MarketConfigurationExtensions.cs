@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 
@@ -14,15 +15,25 @@ public static class MarketConfigurationExtensions
     public const string MARKETS_FILE = "markets.json";
 
     /// <summary>
-    /// Adds <c>markets.json</c> from the application's output folder as a configuration source.
+    /// Adds <c>markets.json</c> from the application's output folder as a configuration source,
+    /// with the lowest priority. The file holds the defaults for every market, so a deployment
+    /// can still override a single value (a database name, a provider address) with an
+    /// environment variable, a setting file or the command line.
     /// </summary>
     /// <param name="configuration">The configuration being built.</param>
     /// <returns>The same builder, for chaining.</returns>
     public static IConfigurationBuilder AddMarketsFile(this IConfigurationBuilder configuration)
     {
-        var provider = new PhysicalFileProvider(AppContext.BaseDirectory);
-        return configuration.AddJsonFile(provider, MARKETS_FILE, optional: false,
-            reloadOnChange: false);
+        var source = new JsonConfigurationSource
+        {
+            FileProvider = new PhysicalFileProvider(AppContext.BaseDirectory),
+            Path = MARKETS_FILE,
+            Optional = false,
+            ReloadOnChange = false
+        };
+        source.ResolveFileProvider();
+        configuration.Sources.Insert(0, source);
+        return configuration;
     }
 
     /// <summary>

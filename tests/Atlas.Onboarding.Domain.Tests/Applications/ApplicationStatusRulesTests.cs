@@ -92,6 +92,16 @@ public class ApplicationStatusRulesTests
     }
 
     [Fact]
+    public void The_status_numbers_stored_in_the_database_do_not_change()
+    {
+        // The unique index that allows one live application per applicant names these values.
+        Assert.Equal(5, (int)ApplicationStatus.Rejected);
+        Assert.Equal(6, (int)ApplicationStatus.Expired);
+        var others = _All.Where(s => ApplicationStatusRules.BlocksNewApplication(s));
+        Assert.All(others, s => Assert.InRange((int)s, 0, 4));
+    }
+
+    [Fact]
     public void Remote_markets_go_straight_to_fulfilment()
     {
         var market = TestMarkets.Valid(m => m.ActivationMode = ActivationMode.Remote);
