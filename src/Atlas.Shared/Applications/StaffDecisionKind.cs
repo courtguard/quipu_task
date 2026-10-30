@@ -13,5 +13,11 @@ public enum StaffDecisionKind
     RejectReview = 1,
 
     /// <summary>Branch staff confirmed the applicant attended and signed in person.</summary>
-    BranchActivated = 2
+    BranchActivated = 2,
+
+    /// <summary>
+    /// A data protection officer recorded the applicant's request to erase their data. The
+    /// record is restricted at once and deleted when its retention period ends.
+    /// </summary>
+    ErasureRequested = 3
 }

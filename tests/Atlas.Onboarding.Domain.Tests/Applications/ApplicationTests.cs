@@ -278,6 +278,44 @@ public class ApplicationTests
         Assert.Throws<InvalidOperationException>(() => Fulfilling().RejectAfterReview(_Now));
     }
 
+    [Fact]
+    public void An_erasure_request_restricts_the_record_whatever_its_status()
+    {
+        foreach (var application in new[] { NewApplication(), UnderReview(), Fulfilling() })
+        {
+            var status = application.Status;
+
+            application.RestrictForErasure(_Now);
+
+            Assert.True(application.IsRestricted);
+            Assert.Equal(_Now, application.ErasureRequestedAtUtc);
+            Assert.Equal(status, application.Status);
+        }
+    }
+
+    [Fact]
+    public void Asking_for_erasure_twice_keeps_the_first_request()
+    {
+        var application = NewApplication();
+        application.RestrictForErasure(_Now);
+
+        application.RestrictForErasure(_Now.AddDays(3));
+
+        Assert.Equal(_Now, application.ErasureRequestedAtUtc);
+    }
+
+    [Fact]
+    public void An_erasure_request_does_not_shorten_the_retention_period()
+    {
+        var application = NewApplication();
+
+        application.RestrictForErasure(_Now);
+
+        Assert.Equal(_Now.AddYears(10), application.RetentionUntilUtc);
+        Assert.False(application.IsDueForDeletion(_Now.AddYears(10).AddDays(-1)));
+        Assert.True(application.IsDueForDeletion(_Now.AddYears(10)));
+    }
+
     [Theory]
     [InlineData(23, false)]
     [InlineData(24, true)]

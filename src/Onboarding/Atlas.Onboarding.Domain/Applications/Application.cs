@@ -106,6 +106,15 @@ public sealed class Application
     /// <summary>The earliest time the record may be deleted, in UTC.</summary>
     public DateTime RetentionUntilUtc { get; private set; }
 
+    /// <summary>
+    /// When the applicant asked for their data to be erased, if they did. From then on the
+    /// record is restricted: kept only because the law requires it, and used for nothing.
+    /// </summary>
+    public DateTime? ErasureRequestedAtUtc { get; private set; }
+
+    /// <summary>Whether the record is restricted following an erasure request.</summary>
+    public bool IsRestricted => ErasureRequestedAtUtc is not null;
+
     /// <summary>Concurrency token, so that two writers cannot silently overwrite.</summary>
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 
@@ -171,6 +180,29 @@ public sealed class Application
     {
         _Documents.Add(document);
     }
+
+    /// <summary>
+    /// Restricts the record after an erasure request. The record must still be kept until its
+    /// retention period ends (anti-money-laundering rules come first), but nothing more is done
+    /// with it: processing stops and nobody can look at it through the services. It is deleted
+    /// with every other record when its retention period ends. Asking again changes nothing.
+    /// </summary>
+    /// <param name="now">The current time, in UTC.</param>
+    public void RestrictForErasure(DateTime now)
+    {
+        if (ErasureRequestedAtUtc is not null)
+        {
+            return;
+        }
+
+        ErasureRequestedAtUtc = now;
+        UpdatedAtUtc = now;
+    }
+
+    /// <summary>Whether the record may now be deleted, its retention period being over.</summary>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <returns>True once the retention period has ended.</returns>
+    public bool IsDueForDeletion(DateTime now) => now >= RetentionUntilUtc;
 
     /// <summary>Whether a stuck application has outlived the time allowed to complete.</summary>
     /// <param name="now">The current time, in UTC.</param>
