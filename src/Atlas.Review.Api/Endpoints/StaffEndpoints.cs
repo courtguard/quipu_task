@@ -36,6 +36,10 @@ public sealed record CaseDetails(
 /// <param name="Note">An optional note, kept with the decision.</param>
 public sealed record ReviewDecisionRequest(string? Decision, string? Note);
 
+/// <summary>A data protection officer's record of an applicant's erasure request.</summary>
+/// <param name="Reference">The reference of the applicant's request, for example a ticket.</param>
+public sealed record ErasureRequest(string? Reference);
+
 /// <summary>Branch staff's confirmation that the applicant attended and signed.</summary>
 /// <param name="Note">An optional note, kept with the confirmation.</param>
 public sealed record BranchActivationRequest(string? Note);
@@ -53,7 +57,11 @@ public static class StaffEndpoints
     /// <summary>The policy for branch staff.</summary>
     public const string BRANCH = "BranchStaff";
 
+    /// <summary>The policy for data protection officers.</summary>
+    public const string DATA_PROTECTION = "DataProtectionOfficers";
+
     private const int MAX_NOTE_LENGTH = 1000;
+    private const int MAX_REFERENCE_LENGTH = 100;
 
     /// <summary>Maps the review and branch activation endpoints.</summary>
     /// <param name="app">The route builder.</param>
@@ -94,6 +102,40 @@ public static class StaffEndpoints
                 CancellationToken ct) =>
             RecordAsync(StaffCases.BRANCH, id, StaffDecisionKind.BranchActivated,
                 request?.Note, user, markets, cases, ct));
+
+        // The applicant's identity is checked through the bank's own channel before this is
+        // called; the reference ties the restriction to that request.
+        app.MapPost("/erasure-requests/{id}", async (string id, ErasureRequest request,
+                ClaimsPrincipal user, MarketRegistry markets, StaffCases cases,
+                CancellationToken ct) =>
+            {
+                var reference = request.Reference?.Trim();
+                if (string.IsNullOrEmpty(reference) || reference.Length > MAX_REFERENCE_LENGTH)
+                {
+                    return Error(400, "REFERENCE_REQUIRED");
+                }
+
+                var staff = StaffMember.From(user);
+                var (market, applicationId) = Locate(id, staff, markets);
+                if (market is null)
+                {
+                    return Error(404, "NOT_FOUND");
+                }
+
+                var outcome = await cases.RecordErasureAsync(market, applicationId, staff.Actor,
+                    reference, ct);
+                return outcome switch
+                {
+                    RecordOutcome.Recorded => Results.Accepted(value: new
+                    {
+                        applicationId = ApplicationIds.Format(market.Code, applicationId),
+                        status = "RESTRICTION_RECORDED"
+                    }),
+                    RecordOutcome.AlreadyDecided => Error(409, "ALREADY_REQUESTED"),
+                    _ => Error(404, "NOT_FOUND")
+                };
+            })
+            .RequireAuthorization(DATA_PROTECTION);
     }
 
     private static async Task<IResult> ListAsync(string stage, string? market,

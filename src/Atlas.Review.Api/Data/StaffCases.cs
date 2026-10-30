@@ -111,6 +111,43 @@ public sealed class StaffCases
             return RecordOutcome.NotPending;
         }
 
+        return await InsertAsync(context, applicationId, kind, actor, note, cancellationToken);
+    }
+
+    /// <summary>
+    /// Records an erasure request for any application that is not already restricted. The
+    /// onboarding service restricts the record; it is deleted when its retention period ends.
+    /// </summary>
+    /// <param name="market">The market.</param>
+    /// <param name="applicationId">The application.</param>
+    /// <param name="actor">The data protection officer, as named in the access log.</param>
+    /// <param name="reference">The reference of the applicant's request.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    /// <returns>What happened.</returns>
+    public async Task<RecordOutcome> RecordErasureAsync(MarketProfile market, Guid applicationId,
+        string actor, string reference, CancellationToken cancellationToken)
+    {
+        await using var context = Create(market);
+        var entry = await context.Directory.AsNoTracking()
+            .Where(e => e.ApplicationId == applicationId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (entry is null)
+        {
+            return RecordOutcome.NotPending;
+        }
+
+        if (entry.IsRestricted)
+        {
+            return RecordOutcome.AlreadyDecided;
+        }
+
+        return await InsertAsync(context, applicationId, StaffDecisionKind.ErasureRequested,
+            actor, reference, cancellationToken);
+    }
+
+    private async Task<RecordOutcome> InsertAsync(ReviewDbContext context, Guid applicationId,
+        StaffDecisionKind kind, string actor, string? note, CancellationToken cancellationToken)
+    {
         var now = _Time.GetUtcNow().UtcDateTime;
         await using var transaction = await context.Database
             .BeginTransactionAsync(cancellationToken);

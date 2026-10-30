@@ -78,6 +78,12 @@ public static partial class ApplicationEndpoints
         var wait = TimeSpan.FromSeconds(options.Value.SyncWaitSeconds);
         var snapshot = await reader.WaitForOutcomeAsync(market, submission.ApplicationId!.Value,
             wait, cancellationToken);
+        if (snapshot!.IsRestricted)
+        {
+            // A repeat of a request whose data the applicant has since asked to erase.
+            return Results.Json(new ErrorResponse("APPLICATION_RESTRICTED"), statusCode: 409);
+        }
+
         return Respond(http.HttpContext.Response, snapshot!, tokens.Create(snapshot!.Id),
             isSubmission: true);
     }
@@ -97,7 +103,7 @@ public static partial class ApplicationEndpoints
         }
 
         var snapshot = await reader.FindAsync(market, parsed.Value.Id, cancellationToken);
-        if (snapshot is null)
+        if (snapshot is null || snapshot.IsRestricted)
         {
             return Results.Json(new ErrorResponse("NOT_FOUND"), statusCode: 404);
         }

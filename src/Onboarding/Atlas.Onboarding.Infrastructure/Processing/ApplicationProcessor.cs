@@ -81,6 +81,14 @@ public sealed class ApplicationProcessor
             return ProcessingOutcome.Finished;
         }
 
+        // Staff decisions come first, so that an erasure request stops everything that would
+        // otherwise follow, including calls that send the applicant's data elsewhere.
+        await ApplyStaffDecisionsAsync(context, market, application, cancellationToken);
+        if (application.IsRestricted)
+        {
+            return ProcessingOutcome.Finished;
+        }
+
         if (application.Status == ApplicationStatus.Processing)
         {
             var next = await VerifyAsync(context, market, application, cancellationToken);
@@ -88,12 +96,6 @@ public sealed class ApplicationProcessor
             {
                 return next.Value;
             }
-        }
-
-        if (application.Status is ApplicationStatus.PendingComplianceReview
-            or ApplicationStatus.AwaitingBranchActivation)
-        {
-            await ApplyStaffDecisionsAsync(context, market, application, cancellationToken);
         }
 
         return application.Status == ApplicationStatus.Fulfilling
@@ -200,7 +202,8 @@ public sealed class ApplicationProcessor
     }
 
     // Decisions are applied in the order they were made. For an in-person market this can be a
-    // cleared review followed by the branch visit.
+    // cleared review followed by the branch visit. A decision that no longer fits the
+    // application is marked as such rather than applied.
     private async Task ApplyStaffDecisionsAsync(OnboardingDbContext context, MarketProfile market,
         Application application, CancellationToken cancellationToken)
     {
@@ -230,6 +233,18 @@ public sealed class ApplicationProcessor
     private static bool Apply(MarketProfile market, Application application,
         StaffDecisionKind kind, DateTime now)
     {
+        if (kind == StaffDecisionKind.ErasureRequested)
+        {
+            application.RestrictForErasure(now);
+            return true;
+        }
+
+        if (application.IsRestricted)
+        {
+            // A restricted record is used for nothing, staff decisions included.
+            return false;
+        }
+
         switch (kind, application.Status)
         {
             case (StaffDecisionKind.ApproveReview, ApplicationStatus.PendingComplianceReview):

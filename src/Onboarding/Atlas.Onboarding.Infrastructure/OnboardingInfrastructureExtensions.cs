@@ -1,6 +1,7 @@
 using Atlas.Onboarding.Infrastructure.Persistence;
 using Atlas.Onboarding.Infrastructure.Processing;
 using Atlas.Onboarding.Infrastructure.Providers;
+using Atlas.Onboarding.Infrastructure.Retention;
 using Atlas.Onboarding.Infrastructure.Security;
 using Atlas.Onboarding.Infrastructure.Storage;
 using Atlas.Onboarding.Infrastructure.Submission;
@@ -47,6 +48,13 @@ public static class OnboardingInfrastructureExtensions
         if (configuration.GetValue("Processing:WorkerEnabled", true))
         {
             services.AddHostedService(sp => sp.GetRequiredService<ProcessingWorker>());
+        }
+
+        services.Configure<RetentionOptions>(configuration.GetSection("Retention"));
+        services.AddSingleton<RetentionPurger>();
+        if (configuration.GetValue("Retention:WorkerEnabled", true))
+        {
+            services.AddHostedService<RetentionWorker>();
         }
 
         var providers = configuration.GetSection("Providers").Get<ProviderOptions>()

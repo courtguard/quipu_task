@@ -34,7 +34,42 @@ public static partial class MarketDatabaseProvisioner
                a.FaceMatch, a.Confidence, a.ScreeningCaseId,
                a.CreatedAtUtc AS SubmittedAtUtc
         FROM dbo.Applications a
-        WHERE a.Status IN (1, 2);
+        WHERE a.Status IN (1, 2) AND a.ErasureRequestedAtUtc IS NULL;
+        """;
+
+    // What a data protection officer can see: that an application exists, and whether it is
+    // already restricted. No personal data.
+    private const string DIRECTORY_VIEW = """
+        CREATE OR ALTER VIEW dbo.ApplicationDirectory AS
+        SELECT a.Id AS ApplicationId,
+               a.Market,
+               CAST(CASE WHEN a.ErasureRequestedAtUtc IS NULL THEN 0 ELSE 1 END AS bit)
+                   AS IsRestricted
+        FROM dbo.Applications a;
+        """;
+
+    // Deletes everything about applications whose retention period has ended, and nothing else.
+    // The onboarding service may run it but may not delete access log rows itself, so it cannot
+    // remove the record of an access before its time.
+    private const string PURGE_PROCEDURE = """
+        CREATE OR ALTER PROCEDURE dbo.PurgeExpiredApplications @cutoff datetime2
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            SET XACT_ABORT ON;
+            DECLARE @ids TABLE (Id uniqueidentifier PRIMARY KEY);
+            INSERT INTO @ids SELECT Id FROM dbo.Applications WHERE RetentionUntilUtc <= @cutoff;
+
+            BEGIN TRANSACTION;
+            DELETE FROM dbo.AccessLog WHERE ApplicationId IN (SELECT Id FROM @ids);
+            DELETE FROM dbo.ReviewDecisions WHERE ApplicationId IN (SELECT Id FROM @ids);
+            DELETE FROM dbo.Jobs WHERE ApplicationId IN (SELECT Id FROM @ids);
+            DELETE FROM dbo.Documents WHERE ApplicationId IN (SELECT Id FROM @ids);
+            DELETE FROM dbo.Applications WHERE Id IN (SELECT Id FROM @ids);
+            COMMIT TRANSACTION;
+
+            SELECT COUNT(*) FROM @ids;
+        END
         """;
 
     // The onboarding service owns the applications; it may only add to the access log.
@@ -44,12 +79,14 @@ public static partial class MarketDatabaseProvisioner
         GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Jobs TO [{0}];
         GRANT SELECT, UPDATE ON dbo.ReviewDecisions TO [{0}];
         GRANT INSERT ON dbo.AccessLog TO [{0}];
+        GRANT EXECUTE ON dbo.PurgeExpiredApplications TO [{0}];
         """;
 
     // The Review API sees the queue, records decisions and wakes the worker. It can change no
     // application and read no log.
     private const string REVIEW_GRANTS = """
         GRANT SELECT ON dbo.ReviewQueue TO [{0}];
+        GRANT SELECT ON dbo.ApplicationDirectory TO [{0}];
         GRANT INSERT ON dbo.ReviewDecisions TO [{0}];
         GRANT SELECT, INSERT ON dbo.Jobs TO [{0}];
         GRANT INSERT ON dbo.AccessLog TO [{0}];
@@ -71,8 +108,11 @@ public static partial class MarketDatabaseProvisioner
         RequireSafeName(market.Database);
         await EnsureDatabaseAsync(adminConnectionString, market.Database, cancellationToken);
         await EnsureSchemaAsync(adminConnectionString, market.Database, cancellationToken);
-        await ExecuteAsync(WithDatabase(adminConnectionString, market.Database),
-            REVIEW_QUEUE_VIEW, cancellationToken);
+        foreach (var definition in new[] { REVIEW_QUEUE_VIEW, DIRECTORY_VIEW, PURGE_PROCEDURE })
+        {
+            await ExecuteAsync(WithDatabase(adminConnectionString, market.Database), definition,
+                cancellationToken);
+        }
 
         if (onboardingLogin is not null)
         {

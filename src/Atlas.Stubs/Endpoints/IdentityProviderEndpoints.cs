@@ -10,14 +10,17 @@ namespace Atlas.Stubs.Endpoints;
 /// </summary>
 public static class IdentityProviderEndpoints
 {
-    private static readonly string[] _Roles = { "compliance_officer", "branch_staff" };
+    private static readonly string[] _Roles =
+    {
+        "compliance_officer", "branch_staff", "data_protection_officer"
+    };
 
     /// <summary>A request for a staff token.</summary>
     /// <param name="Subject">The staff member's identifier, for example "officer-mb-1".</param>
     /// <param name="Name">The staff member's display name.</param>
     /// <param name="Role">compliance_officer or branch_staff.</param>
     /// <param name="Markets">The markets the staff member works for.</param>
-    /// <param name="LifetimeMinutes">Minutes the token is valid; negative for an expired one.</param>
+    /// <param name="LifetimeMinutes">Validity in minutes; negative for an expired token.</param>
     public sealed record TokenRequest(
         string? Subject,
         string? Name,

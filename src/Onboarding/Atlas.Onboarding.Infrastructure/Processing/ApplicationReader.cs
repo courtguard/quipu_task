@@ -12,8 +12,11 @@ namespace Atlas.Onboarding.Infrastructure.Processing;
 /// <param name="Market">The application's market.</param>
 /// <param name="Status">The internal status.</param>
 /// <param name="RejectionReason">Why it was rejected, if it was.</param>
+/// <param name="IsRestricted">
+/// Whether the applicant asked for erasure; a restricted record is no longer shown to anyone.
+/// </param>
 public sealed record ApplicationSnapshot(Guid Id, string Market, ApplicationStatus Status,
-    string? RejectionReason)
+    string? RejectionReason, bool IsRestricted)
 {
     /// <summary>The status as shown to the applicant.</summary>
     public string PublicStatus => PublicApplicationStatus.From(Status);
@@ -42,7 +45,8 @@ public sealed class ApplicationReader
     {
         await using var context = _Databases.Create(market);
         return await context.Applications.AsNoTracking().Where(a => a.Id == id)
-            .Select(a => new ApplicationSnapshot(a.Id, a.Market, a.Status, a.RejectionReason))
+            .Select(a => new ApplicationSnapshot(a.Id, a.Market, a.Status, a.RejectionReason,
+                a.ErasureRequestedAtUtc != null))
             .SingleOrDefaultAsync(cancellationToken);
     }
 
@@ -76,7 +80,7 @@ public sealed class ApplicationReader
         while (true)
         {
             var snapshot = await FindAsync(market, id, cancellationToken);
-            if (snapshot is null || !IsBeingWorkedOn(snapshot.Status)
+            if (snapshot is null || snapshot.IsRestricted || !IsBeingWorkedOn(snapshot.Status)
                 || DateTime.UtcNow >= deadline)
             {
                 return snapshot;

@@ -11,6 +11,9 @@ public static class StaffRoles
 
     /// <summary>Confirms that an applicant attended a branch and signed in person.</summary>
     public const string BRANCH_STAFF = "branch_staff";
+
+    /// <summary>Handles applicants' data protection requests, such as erasure.</summary>
+    public const string DATA_PROTECTION_OFFICER = "data_protection_officer";
 }
 
 /// <summary>The signed-in member of staff, taken from their token.</summary>

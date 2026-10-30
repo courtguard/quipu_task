@@ -53,6 +53,8 @@ try
             .RequireRole(StaffRoles.COMPLIANCE_OFFICER).RequireClaim("sub"));
         options.AddPolicy(StaffEndpoints.BRANCH, policy => policy
             .RequireRole(StaffRoles.BRANCH_STAFF).RequireClaim("sub"));
+        options.AddPolicy(StaffEndpoints.DATA_PROTECTION, policy => policy
+            .RequireRole(StaffRoles.DATA_PROTECTION_OFFICER).RequireClaim("sub"));
     });
 
     builder.Services.AddEndpointsApiExplorer();

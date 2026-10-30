@@ -120,6 +120,8 @@ public sealed class OnboardingDbContext : DbContext
                 .HasFilter("[Kind] <= 1");
             entity.HasIndex(d => d.ApplicationId, "IX_ReviewDecisions_Branch").IsUnique()
                 .HasFilter("[Kind] = 2");
+            entity.HasIndex(d => d.ApplicationId, "IX_ReviewDecisions_Erasure").IsUnique()
+                .HasFilter("[Kind] = 3");
         });
 
         modelBuilder.Entity<AccessLogEntry>(entity =>

@@ -56,6 +56,22 @@ public sealed class ReviewCase
     public DateTime SubmittedAtUtc { get; set; }
 }
 
+/// <summary>
+/// That an application exists, and whether it is restricted, from the
+/// <c>ApplicationDirectory</c> view. It holds no personal data.
+/// </summary>
+public sealed class DirectoryEntry
+{
+    /// <summary>The application's unique identifier.</summary>
+    public Guid ApplicationId { get; set; }
+
+    /// <summary>The applicant's market.</summary>
+    public string Market { get; set; } = string.Empty;
+
+    /// <summary>Whether erasure was already requested.</summary>
+    public bool IsRestricted { get; set; }
+}
+
 /// <summary>A staff decision as the Review API records it.</summary>
 public sealed class DecisionRecord
 {
@@ -111,6 +127,9 @@ public sealed class ReviewDbContext : DbContext
     /// <summary>Cases waiting for staff.</summary>
     public DbSet<ReviewCase> Cases => Set<ReviewCase>();
 
+    /// <summary>Every application, without personal data.</summary>
+    public DbSet<DirectoryEntry> Directory => Set<DirectoryEntry>();
+
     /// <summary>Decisions recorded by staff.</summary>
     public DbSet<DecisionRecord> Decisions => Set<DecisionRecord>();
 
@@ -130,6 +149,12 @@ public sealed class ReviewDbContext : DbContext
         {
             entity.HasNoKey();
             entity.ToView("ReviewQueue");
+        });
+
+        modelBuilder.Entity<DirectoryEntry>(entity =>
+        {
+            entity.HasNoKey();
+            entity.ToView("ApplicationDirectory");
         });
 
         modelBuilder.Entity<DecisionRecord>(entity =>
