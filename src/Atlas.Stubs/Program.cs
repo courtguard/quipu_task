@@ -35,6 +35,7 @@ app.MapGet("/health", () => Results.Ok(new { service = "atlas-stubs", status = "
 app.MapIdNow();
 app.MapWorldCheck();
 app.MapCoreBanking();
+app.MapIdentityProvider();
 app.MapAdmin();
 
 app.Run();
