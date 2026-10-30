@@ -21,7 +21,7 @@ public static class PublicApplicationStatus
     /// <summary>The applicant must visit a branch to activate the account.</summary>
     public const string AWAITING_BRANCH_ACTIVATION = "AWAITING_BRANCH_ACTIVATION";
 
-    /// <summary>The application could not be completed in time; the applicant may reapply.</summary>
+    /// <summary>The application could not be completed in time; the applicant may retry.</summary>
     public const string EXPIRED = "EXPIRED";
 
     /// <summary>Maps an internal status to the one shown to the customer.</summary>

@@ -7,7 +7,7 @@ namespace Atlas.Onboarding.Domain.Verification;
 /// sanctions screening. The rules are:
 /// <list type="bullet">
 /// <item>A failed identity check rejects the application at once; screening is not awaited.</item>
-/// <item>A possible sanctions or PEP match is never decided by the system: it goes to review.</item>
+/// <item>A possible sanctions or PEP match is never decided by the system; it is reviewed.</item>
 /// <item>A missing result means wait. A provider outage never produces a rejection.</item>
 /// </list>
 /// </summary>

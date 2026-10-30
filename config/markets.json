@@ -18,6 +18,7 @@
       "BlobContainer": "ma-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         "NationalIdPattern": "^[0-9]{13}$",
@@ -32,6 +33,7 @@
       "BlobContainer": "mb-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         "NationalIdPattern": "^[0-9]{13}$",
@@ -46,6 +48,7 @@
       "BlobContainer": "mc-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         // 9 alphanumeric characters, a letter in position 9.
@@ -63,6 +66,7 @@
       "BlobContainer": "md-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         "NationalIdPattern": "^[0-9]{10}$",
@@ -77,6 +81,7 @@
       "BlobContainer": "me-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         "NationalIdPattern": "^[0-9]{10}$",
@@ -91,6 +96,7 @@
       "BlobContainer": "mf-documents",
       "IdNowBaseUrl": "http://localhost:5300/idnow/",
       "WorldCheckBaseUrl": "http://localhost:5300/worldcheck/",
+      "CoreBankingBaseUrl": "http://localhost:5300/corebanking/",
       "Identifier": {
         "Required": true,
         // No format is given for MF's personal number, so only a sanity limit is applied.

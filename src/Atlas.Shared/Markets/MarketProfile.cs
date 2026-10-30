@@ -6,7 +6,7 @@ namespace Atlas.Shared.Markets;
 /// </summary>
 public sealed class MarketProfile
 {
-    /// <summary>The internal market code, for example "MB". Set from the configuration key.</summary>
+    /// <summary>The internal market code, for example "MB", taken from the config key.</summary>
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
@@ -41,4 +41,10 @@ public sealed class MarketProfile
 
     /// <summary>Base address of the World-Check endpoint to use for this market.</summary>
     public string WorldCheckBaseUrl { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Base address of the core banking endpoint that opens accounts and orders cards for this
+    /// market.
+    /// </summary>
+    public string CoreBankingBaseUrl { get; set; } = string.Empty;
 }

@@ -26,6 +26,7 @@ internal static class TestMarkets
             BlobContainer = "xx-documents",
             IdNowBaseUrl = "http://localhost:5300/idnow/",
             WorldCheckBaseUrl = "http://localhost:5300/worldcheck/",
+            CoreBankingBaseUrl = "http://localhost:5300/corebanking/",
             Identifier = new IdentifierRules { NationalIdPattern = "^[0-9]{4}$" }
         };
         adjust?.Invoke(profile);

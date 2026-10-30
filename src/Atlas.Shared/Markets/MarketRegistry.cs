@@ -114,6 +114,11 @@ public sealed class MarketRegistry
             yield return "WorldCheckBaseUrl must be an absolute URL";
         }
 
+        if (!Uri.IsWellFormedUriString(market.CoreBankingBaseUrl, UriKind.Absolute))
+        {
+            yield return "CoreBankingBaseUrl must be an absolute URL";
+        }
+
         if (market.Identifier.PassportAcceptedInLieu && market.Identifier.PassportPattern is null)
         {
             yield return "PassportPattern is required when passports are accepted in lieu";

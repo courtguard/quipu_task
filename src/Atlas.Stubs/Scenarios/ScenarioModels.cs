@@ -29,7 +29,7 @@ public sealed class ScenarioRule
     /// </summary>
     public int FailFirst { get; set; }
 
-    /// <summary>The answer to give when the call succeeds; the set's default when omitted.</summary>
+    /// <summary>The answer to give on success; the set's default when omitted.</summary>
     public JsonObject? Response { get; set; }
 }
 
