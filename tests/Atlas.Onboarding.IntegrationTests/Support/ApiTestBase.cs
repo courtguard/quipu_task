@@ -33,6 +33,9 @@ public abstract class ApiTestBase : IDisposable
     /// <summary>A client of the API.</summary>
     protected HttpClient Client { get; } = null!;
 
+    /// <summary>The running API's services.</summary>
+    protected IServiceProvider Services => _Factory!.Services;
+
     /// <summary>Stops the API and its worker, then empties the queue.</summary>
     public void Dispose()
     {

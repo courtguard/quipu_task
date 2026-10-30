@@ -157,6 +157,27 @@ public sealed class PrivilegeTests : ApiTestBase, IDisposable
     }
 
     [SqlFact]
+    public async Task Only_the_onboarding_login_can_run_the_retention_purge()
+    {
+        await ProvisionAsync("MB");
+        const string PURGE_NOTHING =
+            "EXEC dbo.PurgeExpiredApplications @cutoff = '1900-01-01'";
+
+        Assert.Equal(0, await RunAsync(_Onboarding, PURGE_NOTHING));
+        await Assert.ThrowsAsync<SqlException>(() => RunAsync(_Review, PURGE_NOTHING));
+    }
+
+    [SqlFact]
+    public async Task The_review_login_sees_whether_an_application_exists_but_not_whose_it_is()
+    {
+        await ProvisionAsync("MB");
+
+        Assert.NotNull(await RunAsync(_Review, "SELECT COUNT(*) FROM dbo.ApplicationDirectory"));
+        await Assert.ThrowsAsync<SqlException>(
+            () => RunAsync(_Review, "SELECT FirstName FROM dbo.ApplicationDirectory"));
+    }
+
+    [SqlFact]
     public async Task A_login_cannot_open_the_database_of_a_market_it_was_not_given()
     {
         await ProvisionAsync("MB");
