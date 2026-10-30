@@ -1,0 +1,14 @@
+# Build output
+bin/
+obj/
+*.user
+.vs/
+.idea/
+TestResults/
+
+# Material supplied with the task - not part of the deliverable
+/requirements/
+
+# Local secrets / runtime data
+appsettings.*.local.json
+*.log
