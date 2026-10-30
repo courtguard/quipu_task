@@ -26,6 +26,12 @@ public sealed class OnboardingDbContext : DbContext
     /// <summary>The work waiting to be done on applications.</summary>
     public DbSet<ProcessingJob> Jobs => Set<ProcessingJob>();
 
+    /// <summary>Decisions by staff, recorded by the Review API.</summary>
+    public DbSet<StaffDecision> StaffDecisions => Set<StaffDecision>();
+
+    /// <summary>The record of every access to applicants' data.</summary>
+    public DbSet<AccessLogEntry> AccessLog => Set<AccessLogEntry>();
+
     /// <inheritdoc />
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -95,6 +101,35 @@ public sealed class OnboardingDbContext : DbContext
             entity.Property(j => j.LockedBy).HasMaxLength(64);
             entity.Property(j => j.LastError).HasMaxLength(200);
             entity.HasIndex(j => j.NextAttemptAtUtc);
+        });
+
+        modelBuilder.Entity<StaffDecision>(entity =>
+        {
+            entity.ToTable("ReviewDecisions");
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.Id).ValueGeneratedNever();
+            entity.Property(d => d.Kind).HasConversion<int>();
+            entity.Property(d => d.DecidedBy).HasMaxLength(128).IsRequired();
+            entity.Property(d => d.Note).HasMaxLength(1000);
+            entity.Property(d => d.Outcome).HasMaxLength(32);
+
+            // One review decision and one branch activation per application, however many
+            // times an officer presses the button. The values are StaffDecisionKind. Both
+            // indexes are on the same column, so they must be named or EF merges them into one.
+            entity.HasIndex(d => d.ApplicationId, "IX_ReviewDecisions_Review").IsUnique()
+                .HasFilter("[Kind] <= 1");
+            entity.HasIndex(d => d.ApplicationId, "IX_ReviewDecisions_Branch").IsUnique()
+                .HasFilter("[Kind] = 2");
+        });
+
+        modelBuilder.Entity<AccessLogEntry>(entity =>
+        {
+            entity.ToTable("AccessLog");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.Actor).HasMaxLength(160).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => e.ApplicationId);
         });
     }
 

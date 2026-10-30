@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
+using Atlas.Onboarding.Infrastructure.Persistence;
 using Atlas.Shared.Markets;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Atlas.Onboarding.Infrastructure.Persistence;
 
 namespace Atlas.Onboarding.Infrastructure.Provisioning;
 
@@ -19,26 +19,71 @@ public sealed record ServiceLogin(string Name, string Password);
 /// </summary>
 public static partial class MarketDatabaseProvisioner
 {
-    private static readonly string[] _Tables = { "Applications", "Documents", "Jobs" };
+    // The contract with the Review API: the only part of the applications it can see. It shows
+    // cases waiting for a person, with what a reviewer needs, and nothing else. Statuses 1 and 2
+    // are PendingComplianceReview and AwaitingBranchActivation.
+    private const string REVIEW_QUEUE_VIEW = """
+        CREATE OR ALTER VIEW dbo.ReviewQueue AS
+        SELECT a.Id AS ApplicationId,
+               a.Market,
+               CASE a.Status WHEN 1 THEN 'REVIEW' WHEN 2 THEN 'BRANCH' END AS Stage,
+               a.FirstName, a.LastName, a.DateOfBirth, a.Nationality,
+               a.NationalId, a.PassportNumber,
+               CASE a.DocumentResult WHEN 0 THEN 'VALID' WHEN 1 THEN 'INVALID'
+                                     WHEN 2 THEN 'INCONCLUSIVE' END AS DocumentResult,
+               a.FaceMatch, a.Confidence, a.ScreeningCaseId,
+               a.CreatedAtUtc AS SubmittedAtUtc
+        FROM dbo.Applications a
+        WHERE a.Status IN (1, 2);
+        """;
+
+    // The onboarding service owns the applications; it may only add to the access log.
+    private const string ONBOARDING_GRANTS = """
+        GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Applications TO [{0}];
+        GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Documents TO [{0}];
+        GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Jobs TO [{0}];
+        GRANT SELECT, UPDATE ON dbo.ReviewDecisions TO [{0}];
+        GRANT INSERT ON dbo.AccessLog TO [{0}];
+        """;
+
+    // The Review API sees the queue, records decisions and wakes the worker. It can change no
+    // application and read no log.
+    private const string REVIEW_GRANTS = """
+        GRANT SELECT ON dbo.ReviewQueue TO [{0}];
+        GRANT INSERT ON dbo.ReviewDecisions TO [{0}];
+        GRANT SELECT, INSERT ON dbo.Jobs TO [{0}];
+        GRANT INSERT ON dbo.AccessLog TO [{0}];
+        """;
 
     /// <summary>
-    /// Creates the market's database and schema if missing, then the login if one is given.
-    /// Safe to run again.
+    /// Creates the market's database, schema and review view if missing, then the service
+    /// logins that are given. Safe to run again.
     /// </summary>
     /// <param name="adminConnectionString">An administrator's connection to the server.</param>
     /// <param name="market">The market.</param>
-    /// <param name="login">The onboarding service's login, or null to create none.</param>
+    /// <param name="onboardingLogin">The onboarding service's login, or null for none.</param>
+    /// <param name="reviewLogin">The Review API's login, or null for none.</param>
     /// <param name="cancellationToken">Cancels the operation.</param>
     public static async Task ProvisionAsync(string adminConnectionString, MarketProfile market,
-        ServiceLogin? login, CancellationToken cancellationToken)
+        ServiceLogin? onboardingLogin, ServiceLogin? reviewLogin,
+        CancellationToken cancellationToken)
     {
         RequireSafeName(market.Database);
         await EnsureDatabaseAsync(adminConnectionString, market.Database, cancellationToken);
         await EnsureSchemaAsync(adminConnectionString, market.Database, cancellationToken);
-        if (login is not null)
+        await ExecuteAsync(WithDatabase(adminConnectionString, market.Database),
+            REVIEW_QUEUE_VIEW, cancellationToken);
+
+        if (onboardingLogin is not null)
         {
-            await EnsureLoginAsync(adminConnectionString, market.Database, login,
-                cancellationToken);
+            await EnsureLoginAsync(adminConnectionString, market.Database, onboardingLogin,
+                ONBOARDING_GRANTS, cancellationToken);
+        }
+
+        if (reviewLogin is not null)
+        {
+            await EnsureLoginAsync(adminConnectionString, market.Database, reviewLogin,
+                REVIEW_GRANTS, cancellationToken);
         }
     }
 
@@ -80,7 +125,7 @@ public static partial class MarketDatabaseProvisioner
     }
 
     private static async Task EnsureLoginAsync(string admin, string database, ServiceLogin login,
-        CancellationToken cancellationToken)
+        string grants, CancellationToken cancellationToken)
     {
         RequireSafeName(login.Name);
         var password = login.Password.Replace("'", "''");
@@ -89,12 +134,10 @@ public static partial class MarketDatabaseProvisioner
                 CREATE LOGIN [{login.Name}] WITH PASSWORD = N'{password}';
             """, cancellationToken);
 
-        var grants = string.Join("\n", _Tables.Select(t =>
-            $"GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.{t} TO [{login.Name}];"));
         await ExecuteAsync(WithDatabase(admin, database), $"""
             IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'{login.Name}')
                 CREATE USER [{login.Name}] FOR LOGIN [{login.Name}];
-            {grants}
+            {string.Format(grants, login.Name)}
             """, cancellationToken);
     }
 

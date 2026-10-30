@@ -3,6 +3,8 @@ using Atlas.Onboarding.Domain.Applications;
 using Atlas.Onboarding.Infrastructure.Persistence;
 using Atlas.Onboarding.Infrastructure.Providers;
 using Atlas.Onboarding.Infrastructure.Storage;
+using Atlas.Shared.Applications;
+using Atlas.Shared.Auditing;
 using Atlas.Shared.Markets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -88,6 +90,12 @@ public sealed class ApplicationProcessor
             }
         }
 
+        if (application.Status is ApplicationStatus.PendingComplianceReview
+            or ApplicationStatus.AwaitingBranchActivation)
+        {
+            await ApplyStaffDecisionsAsync(context, market, application, cancellationToken);
+        }
+
         return application.Status == ApplicationStatus.Fulfilling
             ? await FulfilAsync(context, market, application, cancellationToken)
             : ProcessingOutcome.Finished;
@@ -106,6 +114,20 @@ public sealed class ApplicationProcessor
                 application.Id);
             return ProcessingOutcome.Finished;
         }
+
+        // The access is recorded before the data leaves, so that a crash cannot hide it.
+        var actions = new List<string>();
+        if (application.Identity is null)
+        {
+            actions.Add(AccessActions.SENT_TO_IDENTITY_PROVIDER);
+        }
+
+        if (application.Screening is null)
+        {
+            actions.Add(AccessActions.SENT_TO_SCREENING_PROVIDER);
+        }
+
+        await LogAccessAsync(context, application.Id, actions, cancellationToken);
 
         // Identity and screening do not depend on each other, so they run side by side. Each
         // result is recorded as soon as it is known, so a retry only repeats what is missing.
@@ -177,6 +199,71 @@ public sealed class ApplicationProcessor
         return bytes;
     }
 
+    // Decisions are applied in the order they were made. For an in-person market this can be a
+    // cleared review followed by the branch visit.
+    private async Task ApplyStaffDecisionsAsync(OnboardingDbContext context, MarketProfile market,
+        Application application, CancellationToken cancellationToken)
+    {
+        var pending = await context.StaffDecisions
+            .Where(d => d.ApplicationId == application.Id && d.AppliedAtUtc == null)
+            .OrderBy(d => d.DecidedAtUtc)
+            .ToListAsync(cancellationToken);
+        if (pending.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var decision in pending)
+        {
+            var now = _Time.GetUtcNow().UtcDateTime;
+            var applied = Apply(market, application, decision.Kind, now);
+            decision.MarkApplied(applied ? "APPLIED" : "NOT_APPLICABLE", now);
+            context.AccessLog.Add(new AccessLogEntry(application.Id,
+                AccessActors.ONBOARDING_SERVICE, AccessActions.DECISION_APPLIED, now));
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        _Logger.LogInformation("Application {ApplicationId} is {Status} after a staff decision",
+            application.Id, application.Status);
+    }
+
+    private static bool Apply(MarketProfile market, Application application,
+        StaffDecisionKind kind, DateTime now)
+    {
+        switch (kind, application.Status)
+        {
+            case (StaffDecisionKind.ApproveReview, ApplicationStatus.PendingComplianceReview):
+                application.ClearAfterReview(market, now);
+                return true;
+            case (StaffDecisionKind.RejectReview, ApplicationStatus.PendingComplianceReview):
+                application.RejectAfterReview(now);
+                return true;
+            case (StaffDecisionKind.BranchActivated, ApplicationStatus.AwaitingBranchActivation):
+                application.ActivateAtBranch(now);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private async Task LogAccessAsync(OnboardingDbContext context, Guid applicationId,
+        IReadOnlyCollection<string> actions, CancellationToken cancellationToken)
+    {
+        if (actions.Count == 0)
+        {
+            return;
+        }
+
+        var now = _Time.GetUtcNow().UtcDateTime;
+        foreach (var action in actions)
+        {
+            context.AccessLog.Add(new AccessLogEntry(applicationId,
+                AccessActors.ONBOARDING_SERVICE, action, now));
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<ProcessingOutcome> FulfilAsync(OnboardingDbContext context,
         MarketProfile market, Application application, CancellationToken cancellationToken)
     {
@@ -186,6 +273,8 @@ public sealed class ApplicationProcessor
         // returns the same account or card order, and never creates a second one.
         if (application.AccountId is null)
         {
+            await LogAccessAsync(context, application.Id,
+                new[] { AccessActions.SENT_TO_CORE_BANKING }, cancellationToken);
             var account = await _CoreBanking.OpenAccountAsync(market, $"{application.Id}:account",
                 name, cancellationToken);
             if (!account.IsSuccess)
@@ -199,6 +288,8 @@ public sealed class ApplicationProcessor
 
         if (application.CardOrderId is null)
         {
+            await LogAccessAsync(context, application.Id,
+                new[] { AccessActions.SENT_TO_CORE_BANKING }, cancellationToken);
             var card = await _CoreBanking.OrderCardAsync(market, $"{application.Id}:card",
                 application.AccountId!, name, cancellationToken);
             if (!card.IsSuccess)

@@ -20,26 +20,21 @@ if (string.IsNullOrWhiteSpace(admin))
 var markets = configuration.GetSection("Markets").Get<Dictionary<string, MarketProfile>>()
               ?? new Dictionary<string, MarketProfile>();
 var registry = new MarketRegistry(markets);
-
-var loginName = configuration["Logins:Onboarding:Name"];
-var loginPassword = configuration["Logins:Onboarding:Password"];
-var login = string.IsNullOrWhiteSpace(loginName) || string.IsNullOrWhiteSpace(loginPassword)
-    ? null
-    : new ServiceLogin(loginName, loginPassword);
+var onboarding = ReadLogin("Onboarding");
+var review = ReadLogin("Review");
 
 try
 {
     foreach (var market in registry.All.OrderBy(m => m.Code))
     {
         Console.Write($"{market.Code}: database {market.Database} ... ");
-        await MarketDatabaseProvisioner.ProvisionAsync(admin, market, login,
+        await MarketDatabaseProvisioner.ProvisionAsync(admin, market, onboarding, review,
             CancellationToken.None);
         Console.WriteLine("ready");
     }
 
-    Console.WriteLine(login is null
-        ? "No service login configured, so none was created."
-        : $"Service login '{login.Name}' has access to the onboarding tables only.");
+    Describe(onboarding, "the onboarding tables, and may only add to the access log");
+    Describe(review, "the review queue and decisions, and may only add to the access log");
     return 0;
 }
 catch (Exception ex)
@@ -48,4 +43,20 @@ catch (Exception ex)
     Console.Error.WriteLine($"Setup failed: {ex.Message}");
     Console.Error.WriteLine("Is SQL Server running (docker compose up -d in /platform)?");
     return 1;
+}
+
+ServiceLogin? ReadLogin(string service)
+{
+    var name = configuration[$"Logins:{service}:Name"];
+    var password = configuration[$"Logins:{service}:Password"];
+    return string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password)
+        ? null
+        : new ServiceLogin(name, password);
+}
+
+static void Describe(ServiceLogin? login, string access)
+{
+    Console.WriteLine(login is null
+        ? "A service login is not configured, so it was not created."
+        : $"Login '{login.Name}' can use {access}.");
 }

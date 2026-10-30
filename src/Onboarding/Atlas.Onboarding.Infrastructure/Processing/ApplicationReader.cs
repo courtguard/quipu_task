@@ -1,5 +1,6 @@
 using Atlas.Onboarding.Domain.Applications;
 using Atlas.Onboarding.Infrastructure.Persistence;
+using Atlas.Shared.Auditing;
 using Atlas.Shared.Markets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -43,6 +44,19 @@ public sealed class ApplicationReader
         return await context.Applications.AsNoTracking().Where(a => a.Id == id)
             .Select(a => new ApplicationSnapshot(a.Id, a.Market, a.Status, a.RejectionReason))
             .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>Records that the applicant read their application's status.</summary>
+    /// <param name="market">The application's market.</param>
+    /// <param name="id">The application's unique identifier.</param>
+    /// <param name="cancellationToken">Cancels the operation.</param>
+    public async Task RecordStatusReadAsync(MarketProfile market, Guid id,
+        CancellationToken cancellationToken)
+    {
+        await using var context = _Databases.Create(market);
+        context.AccessLog.Add(new AccessLogEntry(id, AccessActors.APPLICANT,
+            AccessActions.STATUS_READ, DateTime.UtcNow));
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

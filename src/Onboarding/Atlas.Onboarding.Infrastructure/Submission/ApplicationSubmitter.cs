@@ -5,6 +5,7 @@ using Atlas.Onboarding.Infrastructure.Persistence;
 using Atlas.Onboarding.Infrastructure.Processing;
 using Atlas.Onboarding.Infrastructure.Security;
 using Atlas.Onboarding.Infrastructure.Storage;
+using Atlas.Shared.Auditing;
 using Atlas.Shared.Markets;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -116,6 +117,8 @@ public sealed class ApplicationSubmitter
             await using var context = _Databases.Create(market);
             context.Applications.Add(application);
             context.Jobs.Add(new ProcessingJob(id, now));
+            context.AccessLog.Add(new AccessLogEntry(id, AccessActors.APPLICANT,
+                AccessActions.SUBMITTED, now));
             await context.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
