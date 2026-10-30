@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Onboarding\Atlas.Onboarding.Api\Atlas.Onboarding.Api.csproj" />
     <ProjectReference Include="..\..\src\Atlas.Stubs\Atlas.Stubs.csproj" />
+    <ProjectReference Include="..\..\src\Atlas.Review.Api\Atlas.Review.Api.csproj" />
   </ItemGroup>
 
 </Project>
