@@ -262,6 +262,29 @@ public sealed class Application
         MoveTo(ApplicationStatus.Expired, now);
     }
 
+    /// <summary>
+    /// Clears an application a compliance officer has reviewed and approved. It then goes on as
+    /// if the system had cleared it, including a branch visit where the market requires one.
+    /// </summary>
+    /// <param name="market">The applicant's market.</param>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <exception cref="InvalidOperationException">The application is not under review.</exception>
+    public void ClearAfterReview(MarketProfile market, DateTime now)
+    {
+        RequireStatus(ApplicationStatus.PendingComplianceReview);
+        MoveTo(ApplicationStatusRules.NextAfterClearance(market), now);
+    }
+
+    /// <summary>Declines an application a compliance officer has reviewed.</summary>
+    /// <param name="now">The current time, in UTC.</param>
+    /// <exception cref="InvalidOperationException">The application is not under review.</exception>
+    public void RejectAfterReview(DateTime now)
+    {
+        RequireStatus(ApplicationStatus.PendingComplianceReview);
+        RejectionReason = RejectionReasons.DECLINED;
+        MoveTo(ApplicationStatus.Rejected, now);
+    }
+
     /// <summary>Records that the applicant attended the branch and signed.</summary>
     /// <param name="now">The current time, in UTC.</param>
     public void ActivateAtBranch(DateTime now)

@@ -5,6 +5,7 @@ using Atlas.Onboarding.Domain.Applications;
 using Atlas.Onboarding.Infrastructure.Processing;
 using Atlas.Onboarding.Infrastructure.Security;
 using Atlas.Onboarding.Infrastructure.Submission;
+using Atlas.Shared.Applications;
 using Atlas.Shared.Markets;
 using Microsoft.Extensions.Options;
 
@@ -96,9 +97,13 @@ public static partial class ApplicationEndpoints
         }
 
         var snapshot = await reader.FindAsync(market, parsed.Value.Id, cancellationToken);
-        return snapshot is null
-            ? Results.Json(new ErrorResponse("NOT_FOUND"), statusCode: 404)
-            : Respond(http.HttpContext.Response, snapshot, null, isSubmission: false);
+        if (snapshot is null)
+        {
+            return Results.Json(new ErrorResponse("NOT_FOUND"), statusCode: 404);
+        }
+
+        await reader.RecordStatusReadAsync(market, snapshot.Id, cancellationToken);
+        return Respond(http.HttpContext.Response, snapshot, null, isSubmission: false);
     }
 
     // For a submission, 201 is the ticket's "decided" answer (approved or rejected) and 202 means

@@ -229,6 +229,55 @@ public class ApplicationTests
         Assert.Throws<InvalidOperationException>(() => application.Expire(_Now));
     }
 
+    private static Application UnderReview()
+    {
+        var application = NewApplication();
+        application.RecordIdentity(_Passed, "idn_1", _Now);
+        application.RecordScreening(new ScreeningCheck(ScreeningStatus.PossibleMatch), "wc_1",
+            _Now);
+        application.ApplyVerification(_Remote, _Now);
+        return application;
+    }
+
+    [Fact]
+    public void An_officer_can_clear_a_reviewed_application_into_fulfilment()
+    {
+        var application = UnderReview();
+
+        application.ClearAfterReview(_Remote, _Now);
+
+        Assert.Equal(ApplicationStatus.Fulfilling, application.Status);
+    }
+
+    [Fact]
+    public void A_cleared_review_in_an_in_person_market_still_needs_the_branch_visit()
+    {
+        var application = UnderReview();
+
+        application.ClearAfterReview(_InPerson, _Now);
+
+        Assert.Equal(ApplicationStatus.AwaitingBranchActivation, application.Status);
+    }
+
+    [Fact]
+    public void An_officer_can_decline_with_a_reason_that_reveals_nothing()
+    {
+        var application = UnderReview();
+
+        application.RejectAfterReview(_Now);
+
+        Assert.Equal(ApplicationStatus.Rejected, application.Status);
+        Assert.Equal(RejectionReasons.DECLINED, application.RejectionReason);
+    }
+
+    [Fact]
+    public void Only_an_application_under_review_can_be_decided_by_an_officer()
+    {
+        Assert.Throws<InvalidOperationException>(
+            () => NewApplication().ClearAfterReview(_Remote, _Now));
+        Assert.Throws<InvalidOperationException>(() => Fulfilling().RejectAfterReview(_Now));
+    }
+
     [Theory]
     [InlineData(23, false)]
     [InlineData(24, true)]

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace Atlas.Onboarding.Domain.Applications;
+namespace Atlas.Shared.Applications;
 
 /// <summary>An application identifier taken apart.</summary>
 /// <param name="Market">The market code the application belongs to.</param>

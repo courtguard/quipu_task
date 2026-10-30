@@ -30,6 +30,12 @@ public static class RejectionReasons
     /// quality. The applicant can try again with better photographs.
     /// </summary>
     public const string IDENTITY_NOT_VERIFIED_RETRY = "IDENTITY_NOT_VERIFIED_RETRY";
+
+    /// <summary>
+    /// The application was declined after review. Deliberately says no more: telling the
+    /// applicant that screening found a match could tip them off.
+    /// </summary>
+    public const string DECLINED = "DECLINED";
 }
 
 /// <summary>

@@ -1,5 +1,6 @@
 using Atlas.Onboarding.Api;
 using Atlas.Onboarding.Domain.Applications;
+using Atlas.Shared.Applications;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 
