@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pure domain: state machine, decision rules, market validators. No web, no EF. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\Atlas.Shared\Atlas.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
