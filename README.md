@@ -50,7 +50,7 @@ If port 1433 is taken: `SQL_PORT=14330 docker compose up -d`, then pass
 | Onboarding API | http://localhost:5100/swagger |
 | Review API (staff) | http://localhost:5200/swagger |
 | Stand-ins (IDNow, World-Check, core banking, staff sign-in) | http://localhost:5300/swagger |
-| Logs | Seq, http://localhost:5341 |
+| Logs | Seq, http://localhost:5341 (local-only, no sign-in) |
 
 **Tests:** `dotnet test`. The end-to-end tests need a SQL Server: they use the Docker one if it
 is running, otherwise Windows LocalDB, otherwise they are skipped and say why. They start the real
