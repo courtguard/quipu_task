@@ -3,7 +3,7 @@
 ## Not verified in this environment
 
 I built this on a machine without Docker. Everything that needs SQL Server was verified against
-**SQL Server 2019 LocalDB**, not the SQL Server 2022 container. That covers all 76 end-to-end tests,
+**SQL Server 2019 LocalDB**, not the SQL Server 2022 container. That covers all 78 end-to-end tests,
 the setup tool, both start scripts, and the services running as real processes.
 
 - **Blob storage was never run.** The tests use an in-memory store, so

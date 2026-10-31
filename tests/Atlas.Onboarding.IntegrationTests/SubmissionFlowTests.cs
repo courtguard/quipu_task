@@ -38,6 +38,34 @@ public sealed class SubmissionFlowTests : ApiTestBase
     }
 
     [SqlFact]
+    public async Task The_example_in_the_api_description_is_a_request_that_works()
+    {
+        // What a reviewer gets from "Try it out" in Swagger, sent unchanged.
+        var description = await Client.GetStringAsync("/swagger/v1/swagger.json");
+        var example = System.Text.Json.Nodes.JsonNode.Parse(description)!
+            ["components"]!["schemas"]!["SubmitApplicationRequest"]!["example"]!;
+
+        var answer = await Client.SubmitAsync(example.ToJsonString());
+
+        Assert.Equal(HttpStatusCode.Created, answer.Status);
+        Assert.Equal("APPROVED", answer.State);
+    }
+
+    [SqlFact]
+    public async Task The_status_token_and_idempotency_key_are_read_from_the_declared_headers()
+    {
+        var applicant = Applicant.For("MB");
+        var key = "swagger-" + Guid.NewGuid();
+
+        var first = await Client.SubmitAsync(applicant.ToJson(), key);
+        var status = await Client.GetStatusAsync(first.Id, first.Token);
+
+        Assert.Equal(HttpStatusCode.OK, status.Status);
+        Assert.Equal(HttpStatusCode.Conflict,
+            (await Client.SubmitAsync(Applicant.For("MB"), key)).Status);
+    }
+
+    [SqlFact]
     public async Task The_record_is_kept_for_ten_years_from_the_date_of_application()
     {
         var answer = await Client.SubmitAsync(Applicant.For("MB"));

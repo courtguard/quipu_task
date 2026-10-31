@@ -80,6 +80,9 @@ curl -s -X POST http://localhost:5100/applications \
 Sending the same file twice returns the same application (that is the idempotency). To submit a
 new one, change the `nationalId`.
 
+In Swagger (http://localhost:5100/swagger), "Try it out" on `POST /applications` is pre-filled
+with the `approved-mb.json` request; paste any other sample over it to try another scenario.
+
 The response carries a `statusToken`. Ask about the application later with
 `GET /applications/{applicationId}` and the header `X-Status-Token: <token>`.
 

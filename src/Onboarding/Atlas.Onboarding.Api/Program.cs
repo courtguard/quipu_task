@@ -33,7 +33,8 @@ try
         kestrel.Limits.MaxRequestBodySize = 40 * 1024 * 1024);
 
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+        options.SchemaFilter<SubmitApplicationExample>());
 
     var app = builder.Build();
 

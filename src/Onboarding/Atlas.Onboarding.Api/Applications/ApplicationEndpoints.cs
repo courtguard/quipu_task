@@ -7,6 +7,7 @@ using Atlas.Onboarding.Infrastructure.Security;
 using Atlas.Onboarding.Infrastructure.Submission;
 using Atlas.Shared.Applications;
 using Atlas.Shared.Markets;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
 namespace Atlas.Onboarding.Api.Applications;
@@ -25,13 +26,24 @@ public static partial class ApplicationEndpoints
     /// <param name="app">The route builder.</param>
     public static void MapApplications(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/applications", SubmitAsync);
-        app.MapGet("/applications/{id}", GetAsync);
+        // The body is read by hand (it is fingerprinted byte for byte), so its shape is declared
+        // here for the API description.
+        app.MapPost("/applications", SubmitAsync)
+            .Accepts<SubmitApplicationRequest>("application/json")
+            .Produces<ApplicationResponse>(StatusCodes.Status201Created)
+            .Produces<ApplicationResponse>(StatusCodes.Status202Accepted)
+            .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ErrorResponse>(StatusCodes.Status409Conflict);
+        app.MapGet("/applications/{id}", GetAsync)
+            .Produces<ApplicationResponse>(StatusCodes.Status200OK)
+            .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
     }
 
-    private static async Task<IResult> SubmitAsync(HttpRequest http, SubmissionValidator validator,
-        ApplicationSubmitter submitter, ApplicationReader reader, StatusTokens tokens,
-        IOptions<ProcessingOptions> options, CancellationToken cancellationToken)
+    private static async Task<IResult> SubmitAsync(HttpRequest http,
+        [FromHeader(Name = IDEMPOTENCY_HEADER)] string? idempotencyKey,
+        SubmissionValidator validator, ApplicationSubmitter submitter, ApplicationReader reader,
+        StatusTokens tokens, IOptions<ProcessingOptions> options,
+        CancellationToken cancellationToken)
     {
         // The whole body is read once, so that it can be both fingerprinted and deserialised.
         using var buffer = new MemoryStream();
@@ -52,7 +64,7 @@ public static partial class ApplicationEndpoints
         }
 
         var fingerprint = SHA256.HashData(body);
-        var key = ReadIdempotencyKey(http, fingerprint);
+        var key = ReadIdempotencyKey(idempotencyKey, fingerprint);
         if (key is null)
         {
             return Results.Json(new ErrorResponse("INVALID_IDEMPOTENCY_KEY"), statusCode: 400);
@@ -88,7 +100,8 @@ public static partial class ApplicationEndpoints
             isSubmission: true);
     }
 
-    private static async Task<IResult> GetAsync(string id, HttpRequest http,
+    private static async Task<IResult> GetAsync(string id,
+        [FromHeader(Name = STATUS_TOKEN_HEADER)] string? statusToken, HttpRequest http,
         MarketRegistry markets, ApplicationReader reader, StatusTokens tokens,
         CancellationToken cancellationToken)
     {
@@ -96,8 +109,7 @@ public static partial class ApplicationEndpoints
         // learned by probing.
         var parsed = ApplicationIds.Parse(id);
         var market = parsed is null ? null : markets.Find(parsed.Value.Market);
-        if (parsed is null || market is null
-            || !tokens.IsValid(parsed.Value.Id, http.Headers[STATUS_TOKEN_HEADER].ToString()))
+        if (parsed is null || market is null || !tokens.IsValid(parsed.Value.Id, statusToken))
         {
             return Results.Json(new ErrorResponse("NOT_FOUND"), statusCode: 404);
         }
@@ -146,9 +158,9 @@ public static partial class ApplicationEndpoints
 
     // The client's key if it sent one, otherwise one derived from the request itself, so that
     // even clients that know nothing about idempotency are protected from double-taps.
-    private static string? ReadIdempotencyKey(HttpRequest http, byte[] fingerprint)
+    private static string? ReadIdempotencyKey(string? header, byte[] fingerprint)
     {
-        var sent = http.Headers[IDEMPOTENCY_HEADER].ToString().Trim();
+        var sent = header?.Trim() ?? string.Empty;
         if (sent.Length == 0)
         {
             return "fp-" + Convert.ToHexString(fingerprint).ToLowerInvariant();
