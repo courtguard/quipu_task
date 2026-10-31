@@ -4,13 +4,13 @@ namespace Atlas.Onboarding.Domain.Verification;
 public enum DocumentResult
 {
     /// <summary>The document is authentic.</summary>
-    Valid,
+    Valid = 0,
 
     /// <summary>The document is not authentic.</summary>
-    Invalid,
+    Invalid = 1,
 
     /// <summary>The provider could not tell, typically because of poor image quality.</summary>
-    Inconclusive
+    Inconclusive = 2
 }
 
 /// <summary>

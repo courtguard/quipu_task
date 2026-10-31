@@ -49,8 +49,11 @@ try
         throw new InvalidOperationException(string.Join("; ", problems));
     }
 
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
 
     app.MapGet("/health", () => Results.Ok(new { service = "atlas-onboarding", status = "ok" }));
     app.MapApplications();

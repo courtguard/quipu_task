@@ -33,7 +33,8 @@ public static partial class ApplicationEndpoints
             .Produces<ApplicationResponse>(StatusCodes.Status201Created)
             .Produces<ApplicationResponse>(StatusCodes.Status202Accepted)
             .Produces<ErrorResponse>(StatusCodes.Status400BadRequest)
-            .Produces<ErrorResponse>(StatusCodes.Status409Conflict);
+            .Produces<ErrorResponse>(StatusCodes.Status409Conflict)
+            .Produces<ErrorResponse>(StatusCodes.Status503ServiceUnavailable);
         app.MapGet("/applications/{id}", GetAsync)
             .Produces<ApplicationResponse>(StatusCodes.Status200OK)
             .Produces<ErrorResponse>(StatusCodes.Status404NotFound);
@@ -90,13 +91,18 @@ public static partial class ApplicationEndpoints
         var wait = TimeSpan.FromSeconds(options.Value.SyncWaitSeconds);
         var snapshot = await reader.WaitForOutcomeAsync(market, submission.ApplicationId!.Value,
             wait, cancellationToken);
-        if (snapshot!.IsRestricted)
+        if (snapshot is null)
+        {
+            return Results.Json(new ErrorResponse("APPLICATION_UNAVAILABLE"), statusCode: 503);
+        }
+
+        if (snapshot.IsRestricted)
         {
             // A repeat of a request whose data the applicant has since asked to erase.
             return Results.Json(new ErrorResponse("APPLICATION_RESTRICTED"), statusCode: 409);
         }
 
-        return Respond(http.HttpContext.Response, snapshot!, tokens.Create(snapshot!.Id),
+        return Respond(http.HttpContext.Response, snapshot, tokens.Create(snapshot.Id),
             isSubmission: true);
     }
 

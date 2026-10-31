@@ -10,32 +10,32 @@ public enum ApplicationStatus
     /// Identity verification and sanctions screening are running, or waiting for a provider that
     /// is slow or unavailable.
     /// </summary>
-    Processing,
+    Processing = 0,
 
     /// <summary>
     /// Screening found a possible sanctions or PEP match. A compliance officer in the applicant's
     /// market must decide; the system never decides this case.
     /// </summary>
-    PendingComplianceReview,
+    PendingComplianceReview = 1,
 
     /// <summary>
     /// The applicant is cleared in a market that requires them to attend a branch and sign in
     /// person before the account may be activated.
     /// </summary>
-    AwaitingBranchActivation,
+    AwaitingBranchActivation = 2,
 
     /// <summary>The applicant is cleared and the account and card are being set up.</summary>
-    Fulfilling,
+    Fulfilling = 3,
 
     /// <summary>The applicant has an open account and an ordered card.</summary>
-    Approved,
+    Approved = 4,
 
     /// <summary>The application was declined. The applicant may apply again.</summary>
-    Rejected,
+    Rejected = 5,
 
     /// <summary>
     /// The application could not be completed in time, for example because a provider stayed
     /// unavailable. This is not a judgement on the applicant, who may apply again.
     /// </summary>
-    Expired
+    Expired = 6
 }
