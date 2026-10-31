@@ -107,6 +107,9 @@ curl -s -X POST http://localhost:5200/reviews/MB-.../decision -H "Authorization:
 Staff only ever see their own markets. The decision is applied by the onboarding service within a
 second; follow it with the customer's `GET /applications/{id}`.
 
+In the Review API's Swagger page (http://localhost:5200/swagger), **Authorize** takes the
+`accessToken` (without "Bearer"), and every call from the page then carries it.
+
 ### Driving the stand-ins
 
 The stand-ins' behaviour lives in [`src/Atlas.Stubs/scenarios.json`](src/Atlas.Stubs/scenarios.json).

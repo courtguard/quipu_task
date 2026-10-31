@@ -4,6 +4,7 @@ using Atlas.Review.Api.Security;
 using Atlas.Shared.Markets;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
@@ -58,7 +59,29 @@ try
     });
 
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        // Gives Swagger UI an "Authorize" button, so staff calls can be tried from the page.
+        var bearer = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "A staff token. Locally: POST http://localhost:5300/idp/token with "
+                          + "{\"subject\":\"officer-1\",\"role\":\"compliance_officer\","
+                          + "\"markets\":[\"MB\"]} and paste the accessToken here.",
+            Reference = new OpenApiReference
+            {
+                Type = ReferenceType.SecurityScheme,
+                Id = "Bearer"
+            }
+        };
+        options.AddSecurityDefinition("Bearer", bearer);
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            [bearer] = Array.Empty<string>()
+        });
+    });
 
     var app = builder.Build();
 
