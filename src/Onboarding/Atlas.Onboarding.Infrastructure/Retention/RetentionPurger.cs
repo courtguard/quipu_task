@@ -11,13 +11,12 @@ namespace Atlas.Onboarding.Infrastructure.Retention;
 /// <summary>How often records past their retention period are deleted.</summary>
 public sealed class RetentionOptions
 {
-    /// <summary>Whether this replica runs the deletion. Any number of replicas may.</summary>
-    public bool WorkerEnabled { get; set; } = true;
-
     /// <summary>Minutes between runs.</summary>
     public double IntervalMinutes { get; set; } = 60;
 
-    /// <summary>The most records deleted per market in one run.</summary>
+    /// <summary>
+    /// The target records per market and run. Records tied at the cutoff are deleted together.
+    /// </summary>
     public int BatchSize { get; set; } = 500;
 }
 
@@ -57,7 +56,7 @@ public sealed class RetentionPurger
             .Where(a => a.RetentionUntilUtc <= cutoffUtc)
             .OrderBy(a => a.RetentionUntilUtc)
             .Take(_Options.BatchSize)
-            .Select(a => new { a.Id, a.RetentionUntilUtc })
+            .Select(a => a.RetentionUntilUtc)
             .ToListAsync(cancellationToken);
         if (due.Count == 0)
         {
@@ -65,12 +64,15 @@ public sealed class RetentionPurger
         }
 
         // Images first: if this run stops half-way, the rows are still there and the next run
-        // finds the same records again. The other order could orphan images forever.
-        var batchCutoff = due.Max(a => a.RetentionUntilUtc);
-        var ids = due.Select(a => a.Id).ToList();
-        var blobs = await context.Documents.AsNoTracking()
-            .Where(d => ids.Contains(d.ApplicationId))
-            .Select(d => d.BlobName)
+        // finds the same records again. Include every record the cutoff-based procedure can
+        // delete, including records tied at the batch boundary, so no blobs are orphaned.
+        var batchCutoff = due.Max();
+        var blobs = await (
+                from document in context.Documents.AsNoTracking()
+                join application in context.Applications.AsNoTracking()
+                    on document.ApplicationId equals application.Id
+                where application.RetentionUntilUtc <= batchCutoff
+                select document.BlobName)
             .ToListAsync(cancellationToken);
         foreach (var blob in blobs)
         {

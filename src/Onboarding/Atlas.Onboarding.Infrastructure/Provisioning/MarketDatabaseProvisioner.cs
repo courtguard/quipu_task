@@ -74,12 +74,14 @@ public static partial class MarketDatabaseProvisioner
 
     // The onboarding service owns the applications; it may only add to the access log.
     private const string ONBOARDING_GRANTS = """
-        GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Applications TO [{0}];
-        GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Documents TO [{0}];
+        GRANT SELECT, INSERT, UPDATE ON dbo.Applications TO [{0}];
+        GRANT SELECT, INSERT ON dbo.Documents TO [{0}];
         GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.Jobs TO [{0}];
         GRANT SELECT, UPDATE ON dbo.ReviewDecisions TO [{0}];
         GRANT INSERT ON dbo.AccessLog TO [{0}];
         GRANT EXECUTE ON dbo.PurgeExpiredApplications TO [{0}];
+        REVOKE DELETE ON dbo.Applications FROM [{0}];
+        REVOKE UPDATE, DELETE ON dbo.Documents FROM [{0}];
         """;
 
     // The Review API sees the queue, records decisions and wakes the worker. It can change no

@@ -3,6 +3,11 @@ using Atlas.Stubs.Scenarios;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (!builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException("Atlas.Stubs can only run in the Development environment.");
+}
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
